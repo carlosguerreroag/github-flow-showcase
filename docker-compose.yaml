@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-creds
+    secrets:
+      - postgres-creds
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    expose:
+      - "5432"
+    networks:
+      - internal
+
+  web:
+    build: .
+    ports:
+      - "80:5000"
+    environment:
+      DB_HOST: db
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD_FILE: /run/secrets/postgres-creds
+      DB_NAME: ${POSTGRES_DB}
+      SESSION_SECRET_KEY_FILE: /run/secrets/session-secret-key
+    secrets:
+      - postgres-creds
+      - session-secret-key
+    depends_on:
+      - db
+    networks:
+      - internal
+      - public 
+
+networks:
+  internal:
+    internal: true
+  public:
+
+volumes:
+  postgres_data:
+
+secrets:
+  postgres-creds:
+    file: ./postgres-creds 
+  session-secret-key:
+    file: ./session-secret-key 

@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(200) NOT NULL
+);
+
+INSERT INTO users (username, password) 
+VALUES ('demo', 'scrypt:32768:8:1$4dNrcekEpNfNs9P6$c88d28693cf5d26b8eb3c5efb1940fb52409c7ed9fb8bd4d951c6cc8b272fd117ff628e65602ce7a2349b5fb393883845a7ea7f6259313889e19d6b7d8270fb2')
+ON CONFLICT (username) DO NOTHING;
