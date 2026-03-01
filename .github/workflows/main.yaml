@@ -1,7 +1,8 @@
 name: CICD Pipeline
 
-# to-do:
-# test-build-test-publish to ecr-deploy with docker stack to vps
+# to-do: testing phases, 
+# initsql from s3
+# on dockerfile: healthchecks, restart policies
 
 on:
   push:
@@ -16,9 +17,6 @@ on:
       - 'docker/**'
   workflow_dispatch:
 
-env:
-  DOCKERHUB_ORG_NAME: ${{ vars.DOCKERHUB_ORG_NAME }}
-
 jobs:
   set-tags:
     runs-on: ubuntu-latest
@@ -30,7 +28,7 @@ jobs:
         run: |
           DATE=$(date +%Y%m%d%H%M%S)
           SHA=${GITHUB_SHA::7}
-          TAG="${DATE}-${SHA}"
+          TAG="${DATE}-${SHA}-staging"
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "::set-output name=TAG::$TAG"
 
@@ -38,79 +36,216 @@ jobs:
     runs-on: ubuntu-latest
     needs: set-tags
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Set up Docker Build
-      uses: docker/setup-buildx-action@v2
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@v2
 
-    - name: Log in to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Build Docker imgs
+        run: |
+          docker build -f docker/Dockerfile -t app01:${{ needs.set-tags.outputs.TAG }} .
 
-    - name: Build Docker imgs
-      run: |
-        docker build -t ${{ env.DOCKERHUB_ORG_NAME }}/users:${{ needs.set-tags.outputs.TAG }} ./Projects/08-CICD/1-GH_Actions/apis/users
-
-    - name: Save Docker images
-      run: |
-        docker save ${{ env.DOCKERHUB_ORG_NAME }}/users:${{ needs.set-tags.outputs.TAG }} -o users.tar
-    
-    - name: Save Docker imgs (transfer to next job) 
-      uses: actions/upload-artifact@v4
-      with:
-        name: docker-images
-        path: |
-          users.tar
-
-  test:
+      - name: Save Docker images
+        run: |
+          docker save app01:${{ needs.set-tags.outputs.TAG }} -o build_artifact.tar
+      
+      - name: Upload build artifact 
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact 
+          path: |
+            build_artifact.tar
+#
+#  test:
+#    runs-on: ubuntu-latest
+#    needs: [set-tags, build]
+#    steps:
+#    - name: Download build artifact 
+#      uses: actions/download-artifact@v4
+#      with:
+#        name: build-artifact 
+#        path: .
+#    
+#    - name: Load Docker imgs 
+#      run: |
+#        docker load -i build_artifact.tar
+#
+#    - name: Run python tests
+#      run: |
+#        docker run --rm ${{ env.DOCKERHUB_ORG_NAME }}/users:${{ needs.set-tags.outputs.TAG }} pytest
+#
+  publish:
     runs-on: ubuntu-latest
     needs: [set-tags, build]
     steps:
-    - name: Download Docker imgs (uploaded in build job) 
-      uses: actions/download-artifact@v4
-      with:
-        name: docker-images
-        path: .
-    
-    - name: Load Docker imgs 
-      run: |
-        docker load -i users.tar
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }} 
 
-    - name: Run python tests
-      run: |
-        docker run --rm ${{ env.DOCKERHUB_ORG_NAME }}/users:${{ needs.set-tags.outputs.TAG }} pytest
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-  publish:
-    runs-on: ubuntu-latest
-    needs: [set-tags, build, test]
-    steps:
-    - name: Download Docker imgs (uploaded in build job) 
-      uses: actions/download-artifact@v4
-      with:
-        name: docker-images
-        path: .
-    
-    - name: Load Docker imgs 
-      run: |
-        docker load -i users.tar
+      - name: Download build artifact 
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact 
+          path: .
 
-    - name: Publish imgs
-      run: |
-        docker push ${{ env.DOCKERHUB_ORG_NAME }}/users:${{ needs.set-tags.outputs.TAG }}
+      - name: Load Docker image
+        run: |
+          docker load -i build_artifact.tar
+
+      - name: Tag and Publish imgs
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPO: ${{ secrets.ECR_REPO_STAGING_NAME }}
+        run: |
+          docker tag app01:${{ needs.set-tags.outputs.TAG }} ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_STAGING_NAME }}:${{ needs.set-tags.outputs.TAG }}
+          docker push $ECR_REGISTRY/$ECR_REPO:${{ needs.set-tags.outputs.TAG }}
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [set-tags, build, test, publish]
+    needs: [set-tags, build, publish]
     steps:
-    - name: Download Docker imgs (uploaded in build job) 
-      uses: actions/download-artifact@v4
-      with:
-        name: docker-images
-        path: .
-    
-    - name: Load Docker imgs 
-      run: |
-        docker load -i users.tar
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }} 
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Append app01 img name on .env file
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPO: ${{ secrets.ECR_REPO_STAGING_NAME }}
+        run: |
+          APP01_IMAGE_NAME=$ECR_REGISTRY/$ECR_REPO:${{ needs.set-tags.outputs.TAG }}
+          echo "APP01_IMAGE_NAME=$APP01_IMAGE_NAME" >> ./docker/.env
+
+      - name: Check if the db is initialized 
+        id: initsql_check
+        uses: appleboy/ssh-action@v1
+        env:
+          STACK_NAME: ${{ vars.DOCKER_STACK_NAME }}
+        with:
+          host: ${{ secrets.STAGING_INSTANCE }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          capture_stdout: true
+          envs: STACK_NAME 
+          script: |
+            DB_CONTAINER=$(docker ps --filter label=com.docker.swarm.service.name="$STACK_NAME"_db --format '{{.ID}}')
+            
+            if [ -z "$DB_CONTAINER" ]; then
+              echo "false"
+            elif docker exec "$DB_CONTAINER" test -f /var/lib/postgresql/data/PG_VERSION; then
+              echo "true"
+            else
+              echo "false"
+            fi
+
+      - name: Copy init.sql to instance if the db is not initialized
+        if: contains(steps.initsql_check.outputs.stdout, 'false')
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.STAGING_INSTANCE }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: ./docker/init.sql 
+          target: /tmp/
+          strip_components: 2 
+
+      - name: Ensure Swarm and the env is configured 
+        uses: appleboy/ssh-action@v1
+        env:
+          APP_POSTGRES_CREDS: ${{ secrets.APP_POSTGRES_CREDS }}
+          APP_SESSION_SECRET_KEY: ${{ secrets.APP_SESSION_SECRET_KEY }}
+        with:
+          host: ${{ secrets.STAGING_INSTANCE }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          envs: APP_POSTGRES_CREDS,APP_SESSION_SECRET_KEY
+          script: |
+            # Ensure Docker Swarm is initialized
+            if [ "$(docker info --format '{{.Swarm.LocalNodeState}}')" = "inactive" ]; then
+              docker swarm init
+            fi
+
+            # Create secrets if they don't exist
+            if [ -n "$APP_SESSION_SECRET_KEY" ] && ! docker secret inspect session-secret-key >/dev/null 2>&1; then
+              printf "$APP_SESSION_SECRET_KEY" | docker secret create session-secret-key -
+            fi
+            
+            if [ -n "$APP_POSTGRES_CREDS" ] && ! docker secret inspect postgres-creds >/dev/null 2>&1; then
+              printf "$APP_POSTGRES_CREDS" | docker secret create postgres-creds -
+            fi
+
+      - name: Pull image from ECR
+        uses: appleboy/ssh-action@v1
+        env:
+          ECR_REPO_NAME: ${{ secrets.ECR_REPO_STAGING_NAME }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION }}  
+          IMG_TAG: ${{ needs.set-tags.outputs.TAG }}
+        with:
+          host: ${{ secrets.STAGING_INSTANCE }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          envs: ECR_REPO_NAME,ECR_REGISTRY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,IMG_TAG
+          script: |
+            echo "Logging in to AWS ECR..." 
+            aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+            docker pull "$ECR_REGISTRY/$ECR_REPO_NAME":"$IMG_TAG"
+
+      - name: Docker Stack Deploy
+        uses: cssnr/stack-deploy-action@v1
+        with:
+          name: ${{ vars.DOCKER_STACK_NAME }} 
+          file: ./docker/docker-stack.yaml
+          host: ${{ secrets.STAGING_INSTANCE }}
+          user: ${{ secrets.DEPLOY_USER }} 
+          ssh_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          env_file: ./docker/.env
+          args: --remove-orphans
+          prune: true
+
+      - name: Cleanup 
+        uses: appleboy/ssh-action@v1
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        with:
+          host: ${{ secrets.STAGING_INSTANCE }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          envs: ECR_REGISTRY
+          script: |
+            # Cleanup init.sql script from the system if present
+            if [ -e "/tmp/init.sql" ]; then
+              rm /tmp/init.sql
+            fi
+            echo "Waiting for the stack update to finish..."
+            sleep 15
+            echo "Cleaning unused containers and imgs..."
+            docker container prune -f
+            docker image prune -af
+            echo "Logging out of ECR..."
+            docker logout "$ECR_REGISTRY"
