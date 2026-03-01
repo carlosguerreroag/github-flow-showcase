@@ -1,31 +1,29 @@
 services:
   db:
     image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-creds
     secrets:
       - postgres-creds
     volumes:
+      - /tmp/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
     expose:
       - "5432"
     networks:
       - internal
-    configure:
-      - source: init-sql
-        target: /docker-entrypoint-initdb.d/init.sql
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-creds
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
+    image: ${APP01_IMAGE_NAME} 
     ports:
       - "80:5000"
-    environment:
-      DB_HOST: db
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD_FILE: /run/secrets/postgres-creds
-      DB_NAME: ${POSTGRES_DB}
-      SESSION_SECRET_KEY_FILE: /run/secrets/session-secret-key
     secrets:
       - postgres-creds
       - session-secret-key
@@ -34,6 +32,20 @@ services:
     networks:
       - internal
       - public 
+    environment:
+      - DB_HOST=db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD_FILE=/run/secrets/postgres-creds
+      - DB_NAME=${POSTGRES_DB}
+      - SESSION_SECRET_KEY_FILE=/run/secrets/session-secret-key
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s            
+        max_attempts: 3      
+        window: 30s 
+      update_config:
+        order: start-first
 
 networks:
   internal:
@@ -47,8 +59,4 @@ secrets:
   postgres-creds:
     external: true
   session-secret-key:
-    external: true
-
-configs:
-  init-sql:
     external: true

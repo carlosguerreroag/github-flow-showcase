@@ -1,7 +1,6 @@
 # 🚀 GitHub Flow Showcase: Docker + CI/CD Pipeline
 
-![Build Status](https://github.com/carlosguerreroag/github-flow-showcase/actions/workflows/main.yaml/badge.svg)
-![GitHub Actions Badge](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=fff&style=for-the-badge)
+![Main Branch Workflow Status](https://github.com/carlosguerreroag/github-flow-showcase/actions/workflows/main.yaml/badge.svg)
 ![Docker Badge](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff&style=for-the-badge)
 ![Python Badge](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=fff&style=for-the-badge)
 
