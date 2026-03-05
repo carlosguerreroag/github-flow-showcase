@@ -12,11 +12,11 @@ output "ecr_repository_url" {
   description = "ECR repository URL"
   value = aws_ecr_repository.app01_registry.repository_url
 }
-output "ecr_repository_arns" {
+output "ecr_repository_arn" {
   description = "ECR repository ARN"
   value = aws_ecr_repository.app01_registry.arn
 }
-output "ecr_repository_names" {
+output "ecr_repository_name" {
   value = aws_ecr_repository.app01_registry.name
 }
 

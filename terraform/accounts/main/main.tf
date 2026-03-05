@@ -4,7 +4,7 @@
 module "tf_s3_backend" {
   source        = "../../modules/bootstrap"
   bucket_name   = var.tf_backend_s3_bucket_name
-  dynamodb_locks_table_name = var.tf_backend_lock_table_name
+  dynamodb_locks_table_name = var.tf_backend_locks_table_name
 }
 
 # -------------------------------------------------
@@ -78,6 +78,7 @@ resource "aws_instance" "ec2_instance" {
 resource "aws_ecr_repository" "app01_registry" {
   name = "app01"
   image_tag_mutability = "IMMUTABLE" 
+  force_delete = true
 
   image_scanning_configuration {
     scan_on_push = true

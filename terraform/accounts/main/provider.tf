@@ -8,10 +8,10 @@ terraform {
     }
   }
   backend "s3" {
-    bucket         = modules.tf_s3_backend.s3_bucket_name
+    bucket         = "tf-backend-carlosguerreroag" 
     key            = "main-account/terraform.tfstate"
-    region         = var.main_aws_region
-    dynamodb_table = modules.tf_s3_backend.dynamodb_table_name
+    region         = "eu-west-1"
+    dynamodb_table = "tf-locks"
     encrypt        = true
   }
 }
