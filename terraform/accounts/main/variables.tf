@@ -32,3 +32,13 @@ variable "sg_commonports_rules" {
   type = string
   default = "../../files/security-groups/rules/commonports.json" 
 }
+
+variable "tf_backend_s3_bucket_name" {
+  sensitive = true
+  type = string
+}
+
+variable "tf_backend_locks_table_name" {
+  sensitive = true
+  type = string
+}

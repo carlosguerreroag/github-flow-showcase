@@ -3,6 +3,7 @@
 # -------------------------------------------------
 resource "aws_s3_bucket" "tf_backend" {
   bucket = var.bucket_name
+  force_destroy = true
   tags = {
     ManagedBy = "Terraform"
   }
