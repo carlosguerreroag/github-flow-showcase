@@ -1,0 +1,7 @@
+all:
+  children:
+    aws:
+      children:
+        ec2-instances:
+          hosts:
+            app01:

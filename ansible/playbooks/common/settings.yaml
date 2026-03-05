@@ -1,0 +1,143 @@
+---
+- name: Setup common features and security measures for EC2 Instances 
+  hosts: ec2-instances 
+  become: yes
+  vars_files: 
+    - /etc/ansible/group_vars/all/vault.yaml
+  vars:
+    ansible_become_pass: "{{ security.ec2.admin_pw_unhashed }}"
+    deploy_user: "deploy"
+    ssh_key_path: "~/.ssh/id_rsa.pub"
+    timezone: "Europe/Madrid"
+
+  tasks:
+    - name: Set up timezone 
+      timezone:
+        name: "{{ timezone }}"
+
+    - name: Set Hostname 
+      hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: Update the system
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Reboot the instance
+      ansible.builtin.reboot:
+
+    - name: Install basic packages
+      apt:
+        name:
+          - curl
+          - vim
+          - ufw
+          - fail2ban
+        state: present
+
+    - name: Install "awscli" with option --classic
+      community.general.snap:
+        name: aws-cli
+        classic: true
+
+    - name: Create deploy user 
+      user:
+        name: "{{ deploy_user }}"
+        state: present
+        shell: /bin/bash
+        create_home: true
+        generate_ssh_key: yes
+
+    - name: Ensure .ssh directory exists
+      file:
+        path: "/home/{{ deploy_user }}/.ssh"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0700'
+
+    - name: Retrieve deploy user private key 
+      fetch:
+        src: "/home/{{ deploy_user }}/.ssh/id_rsa"
+        dest: "/etc/ansible/files/home/{{ deploy_user }}/.ssh/id_rsa_{{ inventory_hostname }}"
+        flat: true
+
+    - name: Retrieve deploy user public key
+      fetch:
+        src: "/home/{{ deploy_user }}/.ssh/id_rsa.pub"
+        dest: "/etc/ansible/files/home/{{ deploy_user }}/.ssh/id_rsa_{{ inventory_hostname }}.pub"
+        flat: true
+
+    - name: Delete keypair after backing them up on local machine 
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/home/{{ deploy_user }}/.ssh/id_rsa"
+        - "/home/{{ deploy_user }}/.ssh/id_rsa.pub"
+
+    - name: Add local SSH authorized key for deploy user
+      authorized_key:
+        user: "{{ deploy_user }}"
+        state: present
+        key: "{{ lookup('file', ssh_key_path) }}"
+
+    - name: Add SSH authorized key for Github Actions
+      authorized_key:
+        user: "{{ deploy_user }}"
+        state: present
+        key: "{{ lookup('file', '/etc/ansible/files/home/' + deploy_user + '/.ssh/id_rsa_' + inventory_hostname + '.pub') }}"
+
+    - name: Set UFW Rules
+      ufw:
+#        rule: limit
+        rule: allow 
+        port: '{{ item }}'
+        proto: tcp
+        src: '0.0.0.0/0'
+      loop:
+        - 80
+        - 22
+
+    - name: SSH Hardening via sshd_config
+      copy:
+        src: /etc/ansible/files/etc/ssh/sshd_config
+        dest: /etc/ssh/sshd_config
+        mode: 0644
+        owner: root
+        group: root
+
+    - name: Setup SSH jail on fail2ban
+      copy:
+        src: /etc/ansible/files/etc/fail2ban/jail.local
+        dest: /etc/fail2ban/jail.local
+        mode: 0644
+        owner: root
+        group: root
+
+    - name: Enable and start fail2ban 
+      service:
+        name: fail2ban
+        state: restarted
+        enabled: yes
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny
+      notify: Restart SSH
+
+    - name: Lock critical users password login
+      ansible.builtin.user:
+        name: root
+        password_lock: true
+      loop:
+        - "{{ deploy_user }}"
+        - root
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted

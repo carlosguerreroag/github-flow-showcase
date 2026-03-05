@@ -1,0 +1,53 @@
+---
+- name: Setup inital SSH configs 
+  hosts: ec2-instances 
+  become: yes
+  vars_files: 
+    - /etc/ansible/group_vars/all/vault.yaml
+  vars:
+    admin_user: "carlos"
+    ssh_key_path: "~/.ssh/id_rsa.pub"
+    ansible_user: ubuntu 
+  ignore_errors: true
+
+  tasks:
+    - name: Create admin user 
+      user:
+        name: "{{ admin_user }}"
+        state: present
+        shell: /bin/bash
+        create_home: true
+        groups: sudo
+        append: yes
+        #password: "{{ security.ec2.admin_pw_unhashed | password_hash('sha512') }}"
+        password: "{{ security.ec2.admin_pw }}"
+        password_lock: false
+
+    - name: Ensure .ssh directory exists
+      file:
+        path: "/home/{{ admin_user }}/.ssh"
+        state: directory
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
+        mode: '0700'
+
+    - name: Add local SSH Key on admin user authorized keys 
+      authorized_key:
+        user: "{{ admin_user }}"
+        state: present
+        key: "{{ lookup('file', ssh_key_path) }}"
+
+- name: Setup inital SSH configs PT2
+  hosts: ec2-instances 
+  become: yes
+  vars_files: 
+    - /etc/ansible/group_vars/all/vault.yaml
+  vars:
+    ansible_become_pass: "{{ security.ec2.admin_pw_unhashed }}"
+  tasks:
+    - name: Kill all processes of user ubuntu
+      ansible.builtin.shell: "pkill -u ubuntu"
+      ignore_errors: yes
+
+    - name: Remove user Ubuntu
+      shell: sudo deluser --remove-home ubuntu

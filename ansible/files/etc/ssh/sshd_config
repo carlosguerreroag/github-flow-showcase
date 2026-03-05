@@ -1,0 +1,20 @@
+Include /etc/ssh/sshd_config.d/*.conf
+
+LoginGraceTime 30
+StrictModes yes
+MaxAuthTries 3
+MaxSessions 2
+PasswordAuthentication no
+PubkeyAuthentication yes
+AuthorizedKeysFile	.ssh/authorized_keys
+PermitEmptyPasswords no
+KbdInteractiveAuthentication no
+UsePAM yes
+X11Forwarding no
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem	sftp	/usr/lib/openssh/sftp-server
+ClientAliveInterval 120
+PermitRootLogin no
+DenyUsers root
+AllowUsers carlos deploy
