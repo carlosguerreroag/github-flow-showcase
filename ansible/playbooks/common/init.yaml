@@ -1,0 +1,3 @@
+- import_playbook: ssh.yaml
+- import_playbook: settings.yaml
+- import_playbook: ../docker/docker-engine.yaml
