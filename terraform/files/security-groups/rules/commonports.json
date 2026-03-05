@@ -1,0 +1,10 @@
+{
+  "ingress": [
+    { "port": 22, "proto": "tcp", "cidrs": ["0.0.0.0/0"], "desc": "Allow SSH" },
+    { "port": 80, "proto": "tcp", "cidrs": ["0.0.0.0/0"], "desc": "Allow HTTP" },
+    { "port": -1, "proto": "icmp", "cidrs": ["0.0.0.0/0"], "desc": "Allow ICMP" }
+  ],
+  "egress": [
+    { "port": 0, "proto": "-1", "cidrs": ["0.0.0.0/0"], "desc": "" }
+  ]
+}
