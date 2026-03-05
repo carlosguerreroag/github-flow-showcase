@@ -1,9 +1,18 @@
 # SECRETS
-#session-secret-key
-#postgres-creds
+#**/session-secret-key
+#**/postgres-creds
 
-# VAGRANT
-/.vagrant
-**/.vagrant/*
-**/.vagrant
-/.vagrant*
+# TERRAFORM
+**/*.terraform*
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
