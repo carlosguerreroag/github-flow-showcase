@@ -5,6 +5,7 @@ import os
 import time
 import traceback
 
+# FUNCTIONS
 def get_env_or_file(var_name):
     file_var = f"{var_name}_FILE"
     file_path = os.environ.get(file_var)
@@ -36,6 +37,7 @@ def get_db_connection():
         password=get_password()
     )
 
+# APP BODY
 app = Flask(__name__)
 app.secret_key = get_secret_key() 
 
