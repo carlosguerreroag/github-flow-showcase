@@ -1,8 +1,5 @@
 name: CICD Pipeline
 
-# to-do: testing phases, 
-# on dockerfile: healthchecks, restart policies
-
 on:
   push:
     branches: [ "main" ]
@@ -11,14 +8,22 @@ on:
       - 'docker/**'
   pull_request:
     branches: [ "main" ]
+    types: [ "closed" ]
     paths:
       - 'app/**'
       - 'docker/**'
   workflow_dispatch:
 
 jobs:
+  check-pr-status:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - run: echo "PR merged successfully!"
+
   set-tags:
     runs-on: ubuntu-latest
+    needs: check-pr-status 
     outputs:
       TAG: ${{ steps.set_tag.outputs.TAG }}
     steps:
@@ -31,9 +36,9 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "::set-output name=TAG::$TAG"
 
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
-    needs: set-tags
+    needs: [check-pr-status, set-tags]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -41,43 +46,6 @@ jobs:
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v2
 
-      - name: Build Docker imgs
-        run: |
-          docker build -f docker/Dockerfile -t app01:${{ needs.set-tags.outputs.TAG }} .
-
-      - name: Save Docker images
-        run: |
-          docker save app01:${{ needs.set-tags.outputs.TAG }} -o build_artifact.tar
-      
-      - name: Upload build artifact 
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifact 
-          path: |
-            build_artifact.tar
-#
-#  test:
-#    runs-on: ubuntu-latest
-#    needs: [set-tags, build]
-#    steps:
-#    - name: Download build artifact 
-#      uses: actions/download-artifact@v4
-#      with:
-#        name: build-artifact 
-#        path: .
-#    
-#    - name: Load Docker imgs 
-#      run: |
-#        docker load -i build_artifact.tar
-#
-#    - name: Run python tests
-#      run: |
-#        docker run --rm ${{ env.DOCKERHUB_ORG_NAME }}/users:${{ needs.set-tags.outputs.TAG }} pytest
-#
-  publish:
-    runs-on: ubuntu-latest
-    needs: [set-tags, build]
-    steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -88,16 +56,12 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Download build artifact 
-        uses: actions/download-artifact@v4
         with:
-          name: build-artifact 
-          path: .
+          mask-password: true
 
-      - name: Load Docker image
+      - name: Build Docker imgs
         run: |
-          docker load -i build_artifact.tar
+          docker build -f docker/Dockerfile -t app01:${{ needs.set-tags.outputs.TAG }} .
 
       - name: Tag and Publish imgs
         env:
@@ -109,7 +73,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [set-tags, build, publish]
+    needs: [check-pr-status, set-tags, build-and-publish]
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -121,6 +85,8 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: true
 
       - name: Checkout repo
         uses: actions/checkout@v3
