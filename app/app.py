@@ -41,6 +41,7 @@ def get_db_connection():
 app = Flask(__name__)
 app.secret_key = get_secret_key() 
 
+### API ENDPOINTS
 @app.route('/')
 def index():
     if 'username' in session:
