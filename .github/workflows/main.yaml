@@ -1,7 +1,6 @@
 name: CICD Pipeline
 
 # to-do: testing phases, 
-# initsql from s3
 # on dockerfile: healthchecks, restart policies
 
 on:
@@ -238,12 +237,12 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           envs: ECR_REGISTRY
           script: |
+            echo "Waiting for the stack update to finish..."
+            sleep 15
             # Cleanup init.sql script from the system if present
             if [ -e "/tmp/init.sql" ]; then
               rm /tmp/init.sql
             fi
-            echo "Waiting for the stack update to finish..."
-            sleep 15
             echo "Cleaning unused containers and imgs..."
             docker container prune -f
             docker image prune -af
