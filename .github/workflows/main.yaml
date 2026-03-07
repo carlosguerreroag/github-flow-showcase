@@ -103,9 +103,9 @@ jobs:
       - name: Tag and Publish imgs
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPO: ${{ secrets.ECR_REPO_STAGING_NAME }}
+          ECR_REPO: ${{ secrets.ECR_REPO_NAME }}
         run: |
-          docker tag app01:${{ needs.set-tags.outputs.TAG }} ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_STAGING_NAME }}:${{ needs.set-tags.outputs.TAG }}
+          docker tag app01:${{ needs.set-tags.outputs.TAG }} ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO_NAME }}:${{ needs.set-tags.outputs.TAG }}
           docker push $ECR_REGISTRY/$ECR_REPO:${{ needs.set-tags.outputs.TAG }}
 
   deploy:
@@ -129,7 +129,7 @@ jobs:
       - name: Append app01 img name on .env file
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPO: ${{ secrets.ECR_REPO_STAGING_NAME }}
+          ECR_REPO: ${{ secrets.ECR_REPO_NAME }}
         run: |
           APP01_IMAGE_NAME=$ECR_REGISTRY/$ECR_REPO:${{ needs.set-tags.outputs.TAG }}
           echo "APP01_IMAGE_NAME=$APP01_IMAGE_NAME" >> ./docker/.env
@@ -140,7 +140,7 @@ jobs:
         env:
           STACK_NAME: ${{ vars.DOCKER_STACK_NAME }}
         with:
-          host: ${{ secrets.STAGING_INSTANCE }}
+          host: ${{ secrets.INSTANCE_IP }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
@@ -161,7 +161,7 @@ jobs:
         if: contains(steps.initsql_check.outputs.stdout, 'false')
         uses: appleboy/scp-action@v1
         with:
-          host: ${{ secrets.STAGING_INSTANCE }}
+          host: ${{ secrets.INSTANCE_IP }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
@@ -175,7 +175,7 @@ jobs:
           APP_POSTGRES_CREDS: ${{ secrets.APP_POSTGRES_CREDS }}
           APP_SESSION_SECRET_KEY: ${{ secrets.APP_SESSION_SECRET_KEY }}
         with:
-          host: ${{ secrets.STAGING_INSTANCE }}
+          host: ${{ secrets.INSTANCE_IP }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
@@ -198,14 +198,14 @@ jobs:
       - name: Pull image from ECR
         uses: appleboy/ssh-action@v1
         env:
-          ECR_REPO_NAME: ${{ secrets.ECR_REPO_STAGING_NAME }}
+          ECR_REPO_NAME: ${{ secrets.ECR_REPO_NAME }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ vars.AWS_REGION }}  
           IMG_TAG: ${{ needs.set-tags.outputs.TAG }}
         with:
-          host: ${{ secrets.STAGING_INSTANCE }}
+          host: ${{ secrets.INSTANCE_IP }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
@@ -220,7 +220,7 @@ jobs:
         with:
           name: ${{ vars.DOCKER_STACK_NAME }} 
           file: ./docker/docker-stack.yaml
-          host: ${{ secrets.STAGING_INSTANCE }}
+          host: ${{ secrets.INSTANCE_IP }}
           user: ${{ secrets.DEPLOY_USER }} 
           ssh_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           env_file: ./docker/.env
@@ -232,7 +232,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         with:
-          host: ${{ secrets.STAGING_INSTANCE }}
+          host: ${{ secrets.INSTANCE_IP }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
