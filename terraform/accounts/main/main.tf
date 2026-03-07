@@ -58,7 +58,7 @@ resource "aws_key_pair" "personal" {
 # -------------------------------------------------
 # ----------------- EC2 INSTANCES -----------------
 # -------------------------------------------------
-resource "aws_instance" "ec2_instance" {
+resource "aws_instance" "app01" {
   ami           = var.amis["ubuntu_240404"] 
   instance_type = "t3.micro"
   key_name      = "personal" 

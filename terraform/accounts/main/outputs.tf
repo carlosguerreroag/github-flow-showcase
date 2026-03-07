@@ -1,10 +1,10 @@
 # EC2
 output "instance_id" {
-  value = aws_instance.ec2_instance.id
+  value = aws_instance.app01.id
 }
 
 output "public_ip" {
-  value = aws_instance.ec2_instance.public_ip
+  value = aws_instance.app01.public_ip
 }
 
 # ECR
