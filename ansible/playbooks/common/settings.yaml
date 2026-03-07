@@ -63,6 +63,13 @@
         dest: "/etc/ansible/files/home/{{ deploy_user }}/.ssh/id_rsa_{{ inventory_hostname }}"
         flat: true
 
+    - name: Store deploy user private SSH key as an Ansible variable
+      slurp:
+        src: "/etc/ansible/files/home/{{ deploy_user }}/.ssh/id_rsa_{{ inventory_hostname }}"
+      delegate_to: localhost
+      register: deploy_user_private_ssh_key
+      notify: Display deploy user private SSH key 
+ 
     - name: Retrieve deploy user public key
       fetch:
         src: "/home/{{ deploy_user }}/.ssh/id_rsa.pub"
@@ -141,3 +148,7 @@
       service:
         name: ssh
         state: restarted
+
+    - name: Display deploy user private SSH key 
+      debug:
+        msg: "{{ deploy_user_private_ssh_key.content | b64decode }}"
