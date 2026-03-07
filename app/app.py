@@ -63,10 +63,10 @@ def login():
                 session['username'] = username
                 return redirect(url_for('index'))
             
-            flash('Usuario o contraseña incorrectos.')
+            flash('Username or password incorrect.')
         except Exception as e:
             print("DB ERROR:", repr(e), flush=True)
-            flash('Error de conexión con la base de datos.')
+            flash('Connection to db failed.')
             
     return render_template('login.html')
 
