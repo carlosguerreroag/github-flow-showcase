@@ -18,9 +18,23 @@ variable "main_vpc_id" {
 variable "main_aws_region" {
   sensitive = true
   type = string
-  default = "eu-west-1"
+  default = "your-region"
 }
 
+# BACKEND
+variable "tf_backend_locks_table_name" {
+  sensitive = true
+  type = string
+  default = "tf-locks-yourname"
+}
+
+variable "tf_backend_s3_bucket_name" {
+  sensitive = true
+  type = string
+  default = "tf-backend-yourname"
+}
+
+# EC2
 variable "amis" {
   type = map(string)
   default = {
@@ -33,12 +47,3 @@ variable "sg_commonports_rules" {
   default = "../../files/security-groups/rules/commonports.json" 
 }
 
-variable "tf_backend_s3_bucket_name" {
-  sensitive = true
-  type = string
-}
-
-variable "tf_backend_locks_table_name" {
-  sensitive = true
-  type = string
-}

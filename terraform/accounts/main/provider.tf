@@ -7,13 +7,13 @@ terraform {
       version = "~> 6.0"
     }
   }
-  backend "s3" {
-    bucket         = "tf-backend-carlosguerreroag" 
-    key            = "main-account/terraform.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "tf-locks"
-    encrypt        = true
-  }
+#  backend "s3" {
+#    bucket         = "tf-backend-yourname" 
+#    key            = "main-account/terraform.tfstate"
+#    region         = "your-region"
+#    dynamodb_table = "tf-locks-yourname"
+#    encrypt        = true
+#  }
 }
 
 # REGION and CREDS
