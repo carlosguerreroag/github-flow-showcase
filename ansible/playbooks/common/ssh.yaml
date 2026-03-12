@@ -19,8 +19,7 @@
         create_home: true
         groups: sudo
         append: yes
-        #password: "{{ security.ec2.admin_pw_unhashed | password_hash('sha512') }}"
-        password: "{{ security.ec2.admin_pw }}"
+        password: "{{ security.ec2.admin_pw | password_hash('sha512') }}"
         password_lock: false
 
     - name: Ensure .ssh directory exists
@@ -43,7 +42,7 @@
   vars_files: 
     - /etc/ansible/group_vars/all/vault.yaml
   vars:
-    ansible_become_pass: "{{ security.ec2.admin_pw_unhashed }}"
+    ansible_become_pass: "{{ security.ec2.admin_pw }}"
   tasks:
     - name: Kill all processes of user ubuntu
       ansible.builtin.shell: "pkill -u ubuntu"

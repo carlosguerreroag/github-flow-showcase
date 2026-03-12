@@ -5,7 +5,7 @@
   vars_files: 
     - /etc/ansible/group_vars/all/vault.yaml
   vars:
-    ansible_become_pass: "{{ security.ec2.admin_pw_unhashed }}"
+    ansible_become_pass: "{{ security.ec2.admin_pw }}"
     deploy_user: "deploy"
     ssh_key_path: "~/.ssh/id_rsa.pub"
     timezone: "Europe/Madrid"
