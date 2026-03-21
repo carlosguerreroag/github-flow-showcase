@@ -1,0 +1,15 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = [
+    "E",   # (pycodestyle)
+    "F",   # (pyflakes)
+    "I",   # (isort)
+    "B",   # (flake8-bugbear)
+    "S",   # (flake8-bandit)
+]
+ignore = ["S101"]  # permite assert en tests
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
