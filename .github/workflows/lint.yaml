@@ -1,0 +1,47 @@
+name: Linting Checks
+
+on:
+  pull_request:
+    branches:
+    - 'main'
+    - 'fix/**'
+    paths:
+      - 'app/**'
+      - 'docker/**'
+  workflow_dispatch:
+
+jobs:
+  lint-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python 
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Black 
+        run: pip install black ruff
+
+      - name: Lint check with Black 
+        run: black --diff --check ./app/
+
+      - name: Format check with Ruff
+        run: ruff check ./app/
+
+  lint-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ./docker/Dockerfile
+
+      - name: Validate docker-stack file
+        run: docker stack config -c ./docker/docker-stack.yaml

@@ -269,10 +269,12 @@ After the steps above are configured, we will need to perform the following step
 # Deployment & Usage
 
 Once the underlying infrastructure is provisioned and configured, the entire software lifecycle is managed through GitHub Actions. We'll see that after triggering our GitHub Actions workflow, we can simply access the application via its public URL on a browser. Deploying updates is straightforward: by following the GitHub Flow—pushing changes to a feature branch and merging a Pull Request into main—the CI/CD pipeline automatically builds, publishes, and deploys the new version to the AWS environment without any manual intervention.
+But the deployment workflow only takes place after: 
+- Pull Request Validation: When a PR is created or updated, a Linting Checks and Security Checks workflow are triggered automatically. Branch protection rules prevent unverified or failing code from being merged.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Triggering the Workflow
+## Triggering the Deployment Workflow
 
 As I mentioned before, this project follows the GitHub Flow model, the pipeline is triggered by merging verified code into the primary branch.
 

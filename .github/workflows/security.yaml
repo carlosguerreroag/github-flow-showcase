@@ -1,0 +1,71 @@
+name: Security Checks
+
+on:
+  pull_request:
+    branches:
+    - 'main'
+    - 'fix/**'
+    paths:
+      - 'app/**'
+      - 'docker/**'
+  workflow_dispatch:
+
+jobs:
+  sca-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Check dependencies and filesystem with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: ./docker/
+          severity: HIGH,CRITICAL
+          exit-code: 1
+
+  sast-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Scan Dockerfile
+        uses: bridgecrewio/checkov-action@master
+        with:
+          quiet: true
+          directory: docker/
+          framework: dockerfile
+
+  sca-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Check dependencies and filesystem with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: ./app/
+          severity: HIGH,CRITICAL
+          exit-code: 1
+
+  sast-app:
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Semgrep scan app code 
+        run: semgrep scan --config p/python
+
+      - name: Checkov app code 
+        uses: bridgecrewio/checkov-action@master
+        with:
+          quiet: true
+          directory: app/
+          framework: sast_python 
