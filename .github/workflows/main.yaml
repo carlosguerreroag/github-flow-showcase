@@ -26,10 +26,10 @@ jobs:
         id: set_tag
         run: |
           DATE=$(date +%Y%m%d%H%M%S)
-          SHA=${GITHUB_SHA::7}
+          SHA=${GITHUB_SHA:0:7}
           TAG="${DATE}-${SHA}-staging"
           echo "TAG=$TAG" >> $GITHUB_ENV
-          echo "::set-output name=TAG::$TAG"
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
   build-and-publish:
     runs-on: ubuntu-latest

@@ -14,9 +14,9 @@
     This repository is a personal learning project built to explore DevOps development workflows using industry-standard tools—such as AWS, Terraform, and GitHub Actions—while applying GitHub Flow principles to understand how software is built, automated, and deployed on professional environments, this project aims to simulate a production-ready VMI ecosystem designed for a Start-Up company.
     <br />
     <br />
-    <a href="https://github.com/othneildrew/Best-README-Template/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/carlosguerreroag/github-flow-showcase/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     &middot;
-    <a href="https://github.com/othneildrew/Best-README-Template/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/carlosguerreroag/github-flow-showcase/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
 
@@ -55,7 +55,7 @@
 
 # About The Project
 
-This project is a hands-on exploration of the modern DevOps lifecycle and was created as a learning environment while developing my skills as a DevOps Engineer. The main goal of the project is to simulate a **minimal** cloud-based infrastructure and workflow that a Start-Up company would use, following Minimal Viable Infrastructure (MVI) principles, while also applying best practices used in real environments. It integrates tools such as AWS, Terraform, and GitHub Actions to showcase how infrastructure provisioning, automation, and version control can work together.
+This project is a hands-on exploration of the modern DevOps lifecycle and was created as a learning environment while developing my skills as a DevOps Engineer. The main goal of the project is to simulate a **minimal** cloud-based infrastructure and workflow that a Start-Up company would use, following Minimum Viable Infrastructure (MVI) principles, while also applying best practices used in real environments. It integrates tools such as AWS, Terraform, and GitHub Actions to showcase how infrastructure provisioning, automation, and version control can work together.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
